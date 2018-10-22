@@ -14,4 +14,6 @@
                                                     com.sun.jmdk/jmxtools
                                                     com.sun.jmx/jmxri]]
                  [com.taoensso/timbre "4.10.0"]]
-  :main pattern-launder.cli)
+  :main pattern-launder.cli
+  :profiles {:uberjar {:aot :all
+                       :uberjar-name "pattern_launder.jar"}})
