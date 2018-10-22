@@ -1,11 +1,12 @@
 (ns pattern-launder.cli
   (:gen-class)
-  (:require [pattern-launder.core :refer [triples]]
-            [pattern-launder.io :refer [read-csv serialize]]
+  (:require [pattern-launder.core :refer [triples triple-count]]
+            [pattern-launder.io :refer [read-csv serialize-csv serialize-jsonld]]
+            [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]
-            [taoensso.timbre :as timbre] 
+            [taoensso.timbre :as timbre]
             [taoensso.timbre.appenders.core :as appenders]))
 
 ; ----- Private functions -----
@@ -37,27 +38,37 @@
             "Reads triples patterns from standard input, formatted as CSV"
             "with subject,predicate,object header."
             "Writes results to standard output."
-            "Options:" \newline summary))
+            (str "Options:" summary)))
 
 (def cli-options
-  [[nil "--counts" "Print counts of instances of triple patterns instead of data."
-    :id ::counts]
+  [[nil "--counts" "Print estimated counts of instances of triple patterns instead of data."
+    :id ::counts?]
    ["-v" "--verbose" "Switch on logging to standard error stream."
     :id ::verbose?]
    ["-h" "--help" "Display this help message"
     :id ::help?]])
 
+(defn- add-triple-count
+  [triple-pattern]
+  (assoc (timbre/spy triple-pattern) :count (triple-count triple-pattern)))
+
 (defn- main
-  [{::keys [counts verbose?]}]
-  ; Initialize logging to standard error stream.
-  (when verbose?
-    (timbre/merge-config! {:appenders {:println (appenders/println-appender {:stream :std-err})}}))
-  (letfn [(get-triples [triple-pattern] (-> triple-pattern timbre/spy triples))]
-    (some->> (io/reader *in*)
-            read-csv
-            (mapcat get-triples)
-            (map serialize)
-            dorun)))
+  [{::keys [counts? verbose?]}]
+  ; Initialize logging to standard error stream for verbose output.
+  (timbre/merge-config! {:appenders {:println (if verbose?
+                                                (appenders/println-appender {:stream :std-err})
+                                                {:enabled? false})}})
+  (when-let [triple-patterns (-> *in* io/reader read-csv seq)]
+    (if counts?
+      (->> triple-patterns
+           (map add-triple-count)
+           serialize-csv
+           (csv/write-csv *out*))
+      (some->> triple-patterns
+               (mapcat triples)
+               (map (comp println serialize-jsonld))
+               dorun)))
+  (shutdown-agents))
 
 ; ----- Public functions -----
 

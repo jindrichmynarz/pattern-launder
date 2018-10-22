@@ -22,6 +22,15 @@
                :message "Input CSV has to have 3 columns for subject, predicate, and object."}))
     (map ->csv data)))
 
+(defn serialize-csv
+  [triple-patterns]
+  (let [head (-> triple-patterns first keys)
+        header (map name head)
+        ->csv (apply juxt head)]
+    (->> triple-patterns
+         (map ->csv)
+         (cons header))))
+
 (def jsonld->nquads
   "Serialize `jsonld` to N-Quads."
   (let [options (JsonLdOptions.)]
@@ -29,6 +38,6 @@
     (fn [jsonld]
       (JsonLdProcessor/toRDF jsonld options))))
 
-(def serialize
+(def serialize-jsonld
   "Serialize JSON-LD objects to N-Quads and print."
-  (comp println string/trim jsonld->nquads))
+  (comp string/trim jsonld->nquads))

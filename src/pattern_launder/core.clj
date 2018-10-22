@@ -3,8 +3,9 @@
             [clojure.java.io :as io]
             [clojure.set :refer [intersection]]
             [clojure.string :as string]
-            [taoensso.timbre :refer [error]])
-  (:import (java.net URL URLEncoder)))
+            [taoensso.timbre :refer [error spy]])
+  (:import (java.io IOException)
+           (java.net URL URLConnection URLEncoder)))
 
 ; ----- Constants -----
 
@@ -52,7 +53,7 @@
 (defn- resource->datasets'
   "Find a set of LOD Laundromat datasets containing a `resource`."
   [^String resource & {:keys [limit max-threshold]
-                       :or {limit 10
+                       :or {limit 1000
                             max-threshold 10e4}}]
   (let [query-params {:limit limit
                       :uri resource}
@@ -63,20 +64,20 @@
                        serialize-params
                        (partial assoc query-params :page))
         stop? (fn [{:keys [page pageSize totalResults]}]
-                (or (> totalResults max-threshold)
-                    (-> (dec page)
-                        (* limit)
-                        (+ pageSize)
-                        (= totalResults))))
+                (-> (dec page)
+                    (* limit)
+                    (+ pageSize)
+                    (= totalResults)))
         results (->> (range)
                      rest
                      (map get-page)
+                     (take-while (comp (partial > max-threshold) :totalResults))
                      (take-until stop?))]
-    (when (-> results first :totalResults (< max-threshold))
+    (when (seq results)
       (->> results
-           (mapcat :results)
-           (map (partial str ldf-ns))
-           (into #{})))))
+          (mapcat :results)
+          (map (partial str ldf-ns))
+          (into #{})))))
 
 (def resource->datasets
   (memoize resource->datasets'))
@@ -88,19 +89,32 @@
   (let [datasets (->> (vals triple-pattern)
                       (remove nil?)
                       (map resource->datasets))]
-    (if (every? nil? datasets)
-      (error (format "Pattern %s, %s, %s is too unspecific. Ignoring..." subject predicate object))
-      (reduce intersection datasets))))
+    (if-not (every? nil? datasets)
+      (->> datasets
+           (remove nil?)
+           (reduce intersection))
+      (error (format "Pattern %s, %s, %s is too unspecific. Ignoring..." subject predicate object)))))
 
 (defn- get-jsonld
-  [^URL url]
-  (let [conn (doto (.openConnection url)
-               (.setRequestMethod "GET")
-               (.setRequestProperty "Accept" "application/ld+json"))
-        response (with-open [reader (io/reader (.getInputStream conn))]
-                   (json/parse-stream reader))]
-    (.disconnect conn)
-    response))
+  [^URL url & {:keys [max-retries retries]
+               :or {max-retries 5
+                    retries 0}}]
+  (try
+    (let [conn (doto (.openConnection url)
+                 (.setRequestMethod "GET")
+                 (.setRequestProperty "Accept" "application/ld+json"))
+          response (with-open [reader (io/reader (.getInputStream conn))]
+                     (json/parse-stream reader))]
+      (.disconnect conn)
+      response)
+    (catch IOException exception
+      (if (< retries max-retries)
+        (let [sleep (inc retries)]
+          (error (.getMessage exception)
+                 (format "Sleeping for %d seconds and retrying..." sleep))
+          (Thread/sleep (* sleep 1000))
+          (get-jsonld url :max-retries max-retries :retries sleep))
+        (throw exception)))))
 
 (defn- hypermedia-controls?
   [{hypermedia-controls "@graph"
@@ -144,6 +158,11 @@
           (get "@id")
           URL.))
 
+(defn- get-results-count
+  "Extract the estimated number of results."
+  [hypermedia-controls]
+  (or (get-property hypermedia-controls (hydra "totalItems")) 0))
+
 (defn- page-through
   "Page through LDF results starting from `url`."
   [^URL url]
@@ -152,25 +171,36 @@
       (lazy-cat data (page-through next-page))
       data)))
 
-(defn- triple-pattern->data
-  "Retrieve instances of `triple-pattern` from an `ldf-endpoint`."
+(defn- triple-pattern->query
+  "Convert `triple-pattern` to query URL on `ldf-endpoint`."
   [triple-pattern ldf-endpoint]
   (->> triple-pattern
        (remove (comp nil? second))
        (into {})
        serialize-params
        (str ldf-endpoint)
-       URL.
-       page-through))
+       URL.))
+
+(defn- triple-pattern->data
+  "Retrieve instances of `triple-pattern` from an `ldf-endpoint`."
+  [triple-pattern ldf-endpoint]
+  (page-through (triple-pattern->query triple-pattern ldf-endpoint)))
+
+(defn triple-count
+  "Get estimated number of triples from LOD Laundromat matching the given `triple-pattern`."
+  [triple-pattern]
+  (if-let [datasets (seq (triple-pattern->datasets triple-pattern))]
+    (->> datasets
+         (pmap (comp get-results-count
+                     first
+                     split-hypermedia-controls
+                     get-jsonld
+                     (partial triple-pattern->query triple-pattern)))
+         (reduce +))
+    0))
 
 (defn triples
-  "Get RDF triples from LOD Laundromat for a given `triple-pattern`."
+  "Get RDF triples from LOD Laundromat matching a given `triple-pattern`."
   [triple-pattern]
   (some->> (seq (triple-pattern->datasets triple-pattern))
-           (map (partial triple-pattern->data triple-pattern))))
-
-(comment
-  (def data (triple-pattern->data "http://ldf.lodlaundromat.org/0054cf2f6fc701883bc8db19e969709a"
-                                  {:subject nil 
-                                   :predicate "http://www.w3.org/2000/01/rdf-schema#subClassOf"
-                                   :object nil})))
+           (mapcat (partial triple-pattern->data triple-pattern))))
