@@ -12,13 +12,19 @@ The `pattern_launder` executable reads RDF triple patterns from the standard inp
 
 ```csv
 subject,predicate,object
-,http://www.w3.org/1999/02/22-rdf-syntax-ns#type,http://www.w3.org/2004/02/skos/core#Concept
-,http://www.w3.org/1999/02/22-rdf-syntax-ns#type,http://www.w3.org/2004/02/skos/core#ConceptScheme
-,http://www.w3.org/2004/02/skos/core#notation,
+,http://www.w3.org/2004/02/skos/core#relatedMatch,
 ,http://www.w3.org/2004/02/skos/core#closeMatch,
+,http://www.w3.org/2004/02/skos/core#narrowMatch,
 ```
 
-By default, the tool retrieves data matching each triple pattern and outputs it in the [N-Triples](https://www.w3.org/TR/n-triples) RDF syntax. Alternatively, you can ask for estimated counts of triples matching given triple patterns by using the `--counts` command-line switch. In that case, a `count` column with the estimated counts will be added to the input CSV with triple patterns.
+By default, the tool retrieves data matching each triple pattern and outputs it in the [N-Triples](https://www.w3.org/TR/n-triples) RDF syntax. Alternatively, you can ask for estimated counts of triples matching given triple patterns by using the `--counts` command-line switch. In that case, a `count` column with the estimated counts will be added to the input CSV with triple patterns, like this:
+
+```
+subject,predicate,object,count
+,http://www.w3.org/2004/02/skos/core#relatedMatch,,118806
+,http://www.w3.org/2004/02/skos/core#closeMatch,,298452
+,http://www.w3.org/2004/02/skos/core#narrowMatch,,2738
+```
 
 You can see all the command-line options of the tool by running `./pattern_launder --help`.
 
