@@ -15,5 +15,7 @@
                                                     com.sun.jmx/jmxri]]
                  [com.taoensso/timbre "4.10.0"]]
   :main pattern-launder.cli
-  :profiles {:uberjar {:aot :all
-                       :uberjar-name "pattern_launder.jar"}})
+  :profiles {:dev {:plugins [[lein-binplus "0.4.2"]]}
+             :uberjar {:aot :all
+                       :uberjar-name "pattern_launder.jar"}}
+  :bin {:name "pattern_launder"})
