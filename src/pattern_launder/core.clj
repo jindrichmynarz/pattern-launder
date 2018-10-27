@@ -100,7 +100,7 @@
                :or {max-retries 5
                     retries 0}}]
   (try
-    (let [conn (doto (.openConnection url)
+    (let [conn (doto (.openConnection (spy url))
                  (.setRequestMethod "GET")
                  (.setRequestProperty "Accept" "application/ld+json"))
           response (with-open [reader (io/reader (.getInputStream conn))]
@@ -185,6 +185,8 @@
   "Retrieve instances of `triple-pattern` from an `ldf-endpoint`."
   [triple-pattern ldf-endpoint]
   (page-through (triple-pattern->query triple-pattern ldf-endpoint)))
+
+; ----- Public functions -----
 
 (defn triple-count
   "Get estimated number of triples from LOD Laundromat matching the given `triple-pattern`."

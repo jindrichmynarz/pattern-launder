@@ -40,17 +40,9 @@
             "Writes results to standard output."
             (str "Options:" summary)))
 
-(def cli-options
-  [[nil "--counts" "Print estimated counts of instances of triple patterns instead of data."
-    :id ::counts?]
-   ["-v" "--verbose" "Switch on logging to standard error stream."
-    :id ::verbose?]
-   ["-h" "--help" "Display this help message"
-    :id ::help?]])
-
 (defn- add-triple-count
   [triple-pattern]
-  (assoc (timbre/spy triple-pattern) :count (triple-count triple-pattern)))
+  (assoc triple-pattern :count (triple-count triple-pattern)))
 
 (defn- main
   [{::keys [counts? verbose?]}]
@@ -58,6 +50,7 @@
   (timbre/merge-config! {:appenders {:println (if verbose?
                                                 (appenders/println-appender {:stream :std-err})
                                                 {:enabled? false})}})
+  (timbre/info "Waiting for triple patterns from standard input...")
   (when-let [triple-patterns (-> *in* io/reader read-csv seq)]
     (if counts?
       (->> triple-patterns
@@ -69,6 +62,14 @@
                (map (comp println serialize-jsonld))
                dorun)))
   (shutdown-agents))
+
+(def cli-options
+  [[nil "--counts" "Print estimated counts of instances of triple patterns instead of data."
+    :id ::counts?]
+   ["-v" "--verbose" "Switch on logging to standard error stream."
+    :id ::verbose?]
+   ["-h" "--help" "Display this help message"
+    :id ::help?]])
 
 ; ----- Public functions -----
 
