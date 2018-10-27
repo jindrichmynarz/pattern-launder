@@ -1,12 +1,12 @@
 # pattern-launder
 
-Get instances of RDF triple patterns from [LOD Laundromat](http://lodlaundromat.org).
+Get instances of RDF triple patterns from [LOD Laundromat](http://lodlaundromat.org). For a given RDF triple pattern, the tools looks up datasets that might have its instances via [LOD Laundromat Index](http://index.lodlaundromat.org), then retrieves the instances from these datasets exposed via [Triple Pattern Fragments](http://www.hydra-cg.com/spec/latest/triple-pattern-fragments) endpoints.
 
 Does basically some of what [Frank](https://github.com/LOD-Laundromat/Frank) does.
 
 ## How to use it?
 
-You can use the tool via its command-line interface. Either download a released executable of the tool or compile it yourself via [Leiningen](https://leiningen.org) by running `lein bin`.
+You can use the tool via its command-line interface. Either download a [released executable](https://github.com/jindrichmynarz/pattern-launder/releases/latest) of the tool or compile it yourself via [Leiningen](https://leiningen.org) by running `lein bin`. In order to run the tool, you need to have Java (version 1.6 or newer) installed.
 
 The `pattern_launder` executable reads RDF triple patterns from the standard input stream and writes its results to the standard output stream. This makes it possible to use it in data processing pipelines. The input triple patterns are provided in CSV format with the columns `subject`, `predicate`, and `object`. The values of these columns are either RDF terms, serialized according to the [Triple Pattern Fragments](http://www.hydra-cg.com/spec/latest/triple-pattern-fragments/#controls) specification, or empty, indicating a variable. For example, the following are some triple patterns for [SKOS](https://www.w3.org/TR/skos-reference):
 
