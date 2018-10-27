@@ -1,0 +1,23 @@
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?subject ?predicate ?object
+WHERE {
+  {
+    VALUES ?classClass {
+      owl:Class
+      rdfs:Class
+    }
+    ?object a ?classClass .
+    FILTER isIRI(?object)
+    BIND (rdf:type AS ?predicate)
+  } UNION {
+    VALUES ?propertyClass {
+      owl:DatatypeProperty
+      owl:ObjectProperty
+      rdf:Property
+    }
+    ?predicate a ?propertyClass .
+  }
+}

@@ -28,6 +28,8 @@ subject,predicate,object,count
 
 You can see all the command-line options of the tool by running `./pattern_launder --help`.
 
+For a more detailed example, you can see [how to estimate popularity of vocabularies](examples/vocabulary-usage/README.md).
+
 Alternatively, you can use the tool as a dependency in your Clojure programs. The `pattern-launder.core` namespace exposes two public functions matching the command-line functionality. The function `triples` obtains triples matching a given triple pattern (a map with `:subject`, `:predicate`, and `:object` keys) and returns a lazy sequence of triples in [JSON-LD](https://w3c.github.io/json-ld-syntax). The function `triple-count` returns an estimated count of triples matching the given triple pattern, provided in the same format as above.
 
 ## License

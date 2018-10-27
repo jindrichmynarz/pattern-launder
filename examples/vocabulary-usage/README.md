@@ -1,0 +1,5 @@
+# Vocabulary usage
+
+When you decide whether to reuse an RDF vocabulary, apart from quality of the data described in terms of the vocabulary, you might be interested in the overall popularity of the vocabulary. Using the sample of linked open data from [LOD Laundromat](http://lodlaundromat.org) and [pattern-launder](https://github.com/jindrichmynarz/pattern-launder), you can get an approximation of the vocabulary's popularity.
+
+The `vocabulary_usage.sh` script constructs triple patterns from dereferenceable vocabularies that have their namespace prefixes registered at [Prefix.cc](http://prefix.cc). The produced triple patterns are in the CSV format required by `pattern-launder`. For example, to get triple patterns from [SKOS](https://www.w3.org/TR/skos-reference) you can run `./vocabulary_usage.sh skos > skos_patterns.csv` (see [here](skos_patterns.csv)). Then, you can feed in the triple patterns to `pattern-launder` to get estimated counts of triples matching each pattern: `./pattern_launder --counts < skos_patterns.csv > skos_counts.csv`.
