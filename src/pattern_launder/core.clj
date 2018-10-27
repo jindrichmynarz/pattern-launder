@@ -3,7 +3,7 @@
             [clojure.java.io :as io]
             [clojure.set :refer [intersection]]
             [clojure.string :as string]
-            [taoensso.timbre :refer [error spy]])
+            [taoensso.timbre :refer [error]])
   (:import (java.io IOException)
            (java.net URL URLConnection URLEncoder)))
 
@@ -100,7 +100,7 @@
                :or {max-retries 5
                     retries 0}}]
   (try
-    (let [conn (doto (.openConnection (spy url))
+    (let [conn (doto (.openConnection url)
                  (.setRequestMethod "GET")
                  (.setRequestProperty "Accept" "application/ld+json"))
           response (with-open [reader (io/reader (.getInputStream conn))]
