@@ -38,7 +38,8 @@
             "Reads triples patterns from standard input, formatted as CSV"
             "with subject,predicate,object header."
             "Writes results to standard output."
-            (str "Options:" summary)))
+            "Options:"
+            summary))
 
 (defn- add-triple-count
   [triple-pattern]
