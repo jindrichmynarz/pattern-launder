@@ -26,7 +26,26 @@ curl --head --fail --output /dev/null \
   ${VOCABULARY} 2> /dev/null ||
 die "Vocabulary ${VOCABULARY} is not dereferenceable."
 
+COPY=`mktemp`
+curl \
+  -sLH "Accept:text/turtle, application/rdf+xml, application/ld+json" \
+  ${VOCABULARY} > ${COPY}
+
+# Do a basic RDF syntax sniffing
+if [[ $(head -c5 ${COPY}) == "<?xml" ]]
+then
+  FORMAT="rdf"
+elif [[ $(head -c1 ${COPY}) == "{" ]]
+then
+  FORMAT="jsonld"
+else
+  FORMAT="ttl"
+fi
+
+INPUT=${COPY}.${FORMAT}
+cp ${COPY} ${INPUT}
+
 arq \
-  --data ${VOCABULARY} \
+  --data ${INPUT} \
   --query vocabulary_to_patterns.rq \
   --results CSV
